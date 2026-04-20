@@ -1414,7 +1414,7 @@ body::before {
 // ── SUPABASE CONFIG ──
 const SUPABASE_URL = 'https://nxsimxeoqknnmfkkmdju.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54c2lteGVvcWtubm1ma2ttZGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzYyMjMsImV4cCI6MjA5MjIxMjIyM30.0vuQaTKGJsQXT0D9TpEdz6SchXkpa1F-yC5v8Q8lC0o';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── MAGIC LINK LOGIN ──
 async function sendMagicLink() {
@@ -1432,7 +1432,7 @@ async function sendMagicLink() {
   btn.textContent = 'Sending...';
   btn.disabled = true;
 
-  const { error } = await supabase.auth.signInWithOtp({
+  const { error } = await sbClient.auth.signInWithOtp({
     email: email,
     options: {
       emailRedirectTo: window.location.href
@@ -1469,14 +1469,14 @@ function showLoginError(msg) {
 
 // ── SESSION CHECK — runs on every page load ──
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     showPortal(session.user);
   }
 }
 
 // ── AUTH STATE LISTENER — handles magic link callback ──
-supabase.auth.onAuthStateChange((event, session) => {
+sbClient.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session) {
     showPortal(session.user);
   }
@@ -1506,7 +1506,7 @@ function showLoginPage() {
 
 // ── LOGOUT ──
 async function doLogout() {
-  await supabase.auth.signOut();
+  await sbClient.auth.signOut();
   showLoginPage();
 }
 
