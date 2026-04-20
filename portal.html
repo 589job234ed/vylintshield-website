@@ -899,22 +899,33 @@ body::before {
     <div class="login-logo">Vylint<span>Shield</span></div>
     <div class="login-tagline">Customer Portal</div>
 
-    <div class="form-group">
-      <label class="form-label">Email Address</label>
-      <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com" value="david@vylintshield.com">
+    <!-- Step 1: Enter email -->
+    <div id="loginStep1">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter') sendMagicLink()">
+      </div>
+      <button class="btn-login" id="loginBtn" onclick="sendMagicLink()">Send Login Link →</button>
+      <div class="login-note">
+        We'll send a secure login link to your email — no password needed.<br>
+        Need help? <a href="mailto:david@vylintshield.com" style="color:var(--teal);">david@vylintshield.com</a>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Access Code</label>
-      <input type="password" class="form-input" id="loginCode" placeholder="Enter your access code" value="demo123">
+    <!-- Step 2: Check email confirmation -->
+    <div id="loginStep2" style="display:none;text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:1rem;">📬</div>
+      <div style="font-family:var(--display);font-size:1.1rem;color:var(--white);margin-bottom:0.75rem;">Check your inbox</div>
+      <div style="font-size:0.85rem;color:var(--muted);line-height:1.7;margin-bottom:1.5rem;">
+        We sent a login link to <span id="sentToEmail" style="color:var(--teal);"></span>.<br>
+        Click the link in that email to access your portal.<br>
+        The link expires in 1 hour.
+      </div>
+      <button class="btn-login" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:0.8rem;" onclick="resetLogin()">← Use a different email</button>
     </div>
 
-    <button class="btn-login" onclick="doLogin()">Access My Portal →</button>
-
-    <div class="login-note">
-      Your access code was included in your welcome email.<br>
-      Need help? Contact <a href="mailto:david@vylintshield.com" style="color:var(--teal);">david@vylintshield.com</a>
-    </div>
+    <!-- Error message -->
+    <div id="loginError" style="display:none;margin-top:1rem;padding:0.75rem 1rem;background:rgba(232,64,87,0.1);border:1px solid rgba(232,64,87,0.3);border-radius:4px;font-size:0.82rem;color:#e84057;text-align:center;"></div>
   </div>
 </div>
 
@@ -1398,38 +1409,105 @@ body::before {
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── DEMO DATA ──
-const DEMO_USER = {
-  email: 'david@vylintshield.com',
-  code: 'demo123',
-  name: 'Test Dental',
-  initials: 'TD',
-  plan: 'Standard'
-};
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://nxsimxeoqknnmfkkmdju.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54c2lteGVvcWtubm1ma2ttZGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzYyMjMsImV4cCI6MjA5MjIxMjIyM30.0vuQaTKGJsQXT0D9TpEdz6SchXkpa1F-yC5v8Q8lC0o';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ── LOGIN ──
-function doLogin() {
-  const email = document.getElementById('loginEmail').value;
-  const code = document.getElementById('loginCode').value;
+// ── MAGIC LINK LOGIN ──
+async function sendMagicLink() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const btn = document.getElementById('loginBtn');
+  const errorEl = document.getElementById('loginError');
 
-  if (!email || !code) {
-    alert('Please enter your email and access code.');
+  errorEl.style.display = 'none';
+
+  if (!email || !email.includes('@')) {
+    showLoginError('Please enter a valid email address.');
     return;
   }
 
-  // Show portal
-  document.getElementById('loginPage').style.display = 'none';
-  document.getElementById('portal').classList.add('active');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
 
-  // Set user info
-  document.getElementById('userName').textContent = DEMO_USER.name;
-  document.getElementById('userInitials').textContent = DEMO_USER.initials;
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email,
+    options: {
+      emailRedirectTo: window.location.href
+    }
+  });
+
+  if (error) {
+    btn.textContent = 'Send Login Link →';
+    btn.disabled = false;
+    showLoginError('Something went wrong. Please try again or contact david@vylintshield.com');
+    return;
+  }
+
+  // Show confirmation step
+  document.getElementById('sentToEmail').textContent = email;
+  document.getElementById('loginStep1').style.display = 'none';
+  document.getElementById('loginStep2').style.display = 'block';
 }
 
-function doLogout() {
+function resetLogin() {
+  document.getElementById('loginStep1').style.display = 'block';
+  document.getElementById('loginStep2').style.display = 'none';
+  document.getElementById('loginEmail').value = '';
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Send Login Link →';
+  btn.disabled = false;
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ── SESSION CHECK — runs on every page load ──
+async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    showPortal(session.user);
+  }
+}
+
+// ── AUTH STATE LISTENER — handles magic link callback ──
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    showPortal(session.user);
+  }
+  if (event === 'SIGNED_OUT') {
+    showLoginPage();
+  }
+});
+
+// ── SHOW PORTAL ──
+function showPortal(user) {
+  const email = user.email || '';
+  const namePart = email.split('@')[0];
+  const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._-]/g, ' ');
+  const initials = displayName.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('portal').classList.add('active');
+  document.getElementById('userName').textContent = displayName;
+  document.getElementById('userInitials').textContent = initials;
+}
+
+// ── SHOW LOGIN ──
+function showLoginPage() {
   document.getElementById('portal').classList.remove('active');
   document.getElementById('loginPage').style.display = 'flex';
+}
+
+// ── LOGOUT ──
+async function doLogout() {
+  await supabase.auth.signOut();
+  showLoginPage();
 }
 
 // ── TABS ──
@@ -1574,6 +1652,9 @@ function askSuggestion(btn) {
 function showPreview(type) {
   alert('In the live version this opens the PDF preview. Your customer would see their actual document here.');
 }
+
+// ── INIT — check for existing session on load ──
+checkSession();
 </script>
 </body>
 </html>
