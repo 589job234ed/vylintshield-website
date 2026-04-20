@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VylintShield — Customer Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #07090d;
+  --deep: #0c1018;
+  --panel: #101620;
+  --panel2: #141c28;
+  --border: #1c2a3a;
+  --teal: #00d4aa;
+  --teal-dim: #00a885;
+  --teal-glow: rgba(0,212,170,0.1);
+  --amber: #e8a020;
+  --red: #e84057;
+  --green: #22c97a;
+  --blue: #4a9eff;
+  --white: #eaf0f8;
+  --muted: #5a7590;
+  --text: #c8d8e8;
+  --display: 'Playfair Display', Georgia, serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,170,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,170,0.02) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── LOGIN PAGE ── */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.login-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+}
+
+.login-logo {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.login-logo span { color: var(--teal); }
+
+.login-tagline {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+}
+
+.form-group { margin-bottom: 1.25rem; }
+
+.form-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  color: var(--white);
+  font-family: var(--body);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.form-input:focus { border-color: var(--teal); }
+
+.btn-login {
+  width: 100%;
+  background: var(--teal);
+  color: var(--black);
+  border: none;
+  border-radius: 4px;
+  padding: 0.85rem;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+}
+
+.btn-login:hover { background: var(--teal-dim); transform: translateY(-1px); }
+
+.login-note {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 1.5rem;
+}
+
+/* ── PORTAL LAYOUT ── */
+.portal { display: none; min-height: 100vh; }
+.portal.active { display: flex; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: var(--deep);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+}
+
+.sidebar-logo {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo-text {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.sidebar-logo-text span { color: var(--teal); }
+
+.sidebar-logo-sub {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+}
+
+.sidebar-nav { flex: 1; padding: 1rem 0; }
+
+.nav-section-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.5rem 1.5rem 0.25rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+
+.nav-item:hover { color: var(--white); background: rgba(255,255,255,0.03); }
+
+.nav-item.active {
+  color: var(--teal);
+  background: var(--teal-glow);
+  border-left-color: var(--teal);
+}
+
+.nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+
+.sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.user-info { display: flex; align-items: center; gap: 0.75rem; }
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--teal-glow);
+  border: 1px solid rgba(0,212,170,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--teal);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-name { font-size: 0.8rem; color: var(--white); font-weight: 500; }
+.user-plan {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--teal);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-logout {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  margin-top: 0.5rem;
+  display: block;
+  transition: color 0.2s;
+}
+
+.btn-logout:hover { color: var(--red); }
+
+/* MAIN CONTENT */
+.main-content {
+  margin-left: 240px;
+  flex: 1;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* PAGE HEADER */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-title {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle { font-size: 0.875rem; color: var(--muted); }
+
+.shield-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(34,201,122,0.1);
+  border: 1px solid rgba(34,201,122,0.25);
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--green);
+  letter-spacing: 0.06em;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* TABS */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* STAT CARDS */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.stat-card.teal::before { background: var(--teal); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.amber::before { background: var(--amber); }
+.stat-card.blue::before { background: var(--blue); }
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-card.teal .stat-value { color: var(--teal); }
+.stat-card.green .stat-value { color: var(--green); }
+.stat-card.amber .stat-value { color: var(--amber); }
+.stat-card.blue .stat-value { color: var(--blue); }
+
+.stat-sub { font-size: 0.75rem; color: var(--muted); }
+
+/* RISK GAUGE */
+.risk-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.risk-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.risk-gauge {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.gauge-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.gauge-circle svg { transform: rotate(-90deg); }
+
+.gauge-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+.gauge-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+
+.gauge-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-score {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gauge-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.risk-details { flex: 1; }
+
+.risk-level {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.risk-level.high { background: rgba(232,64,87,0.15); color: var(--red); border: 1px solid rgba(232,64,87,0.3); }
+.risk-level.medium { background: rgba(232,160,32,0.15); color: var(--amber); border: 1px solid rgba(232,160,32,0.3); }
+.risk-level.low { background: rgba(34,201,122,0.15); color: var(--green); border: 1px solid rgba(34,201,122,0.3); }
+
+.risk-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; margin-bottom: 0.75rem; }
+
+.risk-items { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+
+.risk-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.risk-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* COMPLIANCE CHECKLIST */
+.compliance-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.compliance-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.83rem;
+  transition: background 0.15s;
+}
+
+.compliance-item:hover { background: rgba(255,255,255,0.02); }
+
+.compliance-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+
+.compliance-check.done { background: rgba(34,201,122,0.2); color: var(--green); border: 1px solid rgba(34,201,122,0.4); }
+.compliance-check.warn { background: rgba(232,160,32,0.2); color: var(--amber); border: 1px solid rgba(232,160,32,0.4); }
+.compliance-check.fail { background: rgba(232,64,87,0.2); color: var(--red); border: 1px solid rgba(232,64,87,0.4); }
+
+.compliance-text { flex: 1; color: var(--text); }
+.compliance-badge {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-hipaa { background: rgba(74,158,255,0.1); color: var(--blue); border: 1px solid rgba(74,158,255,0.2); }
+.badge-pci { background: rgba(232,160,32,0.1); color: var(--amber); border: 1px solid rgba(232,160,32,0.2); }
+.badge-gen { background: rgba(0,212,170,0.1); color: var(--teal); border: 1px solid rgba(0,212,170,0.2); }
+
+/* DOCUMENTS */
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.doc-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.doc-card:hover { border-color: rgba(0,212,170,0.3); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+
+.doc-card-header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.doc-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--teal-glow);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.doc-name {
+  font-family: var(--display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.3;
+  margin-bottom: 0.2rem;
+}
+
+.doc-meta {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.doc-card-body { padding: 0.75rem 1.25rem 1rem; }
+
+.doc-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
+
+.doc-actions { display: flex; gap: 0.5rem; }
+
+.btn-download {
+  flex: 1;
+  background: var(--teal);
+  color: var(--black);
+  border: none;
+  border-radius: 3px;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-download:hover { background: var(--teal-dim); }
+
+.btn-preview {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--body);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-preview:hover { border-color: var(--teal); color: var(--teal); }
+
+/* AI CHAT */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  height: calc(100vh - 180px);
+}
+
+.chat-main {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chat-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--teal-glow);
+  border: 1px solid rgba(0,212,170,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.chat-name { font-weight: 600; color: var(--white); font-size: 0.9rem; }
+.chat-status { font-size: 0.75rem; color: var(--teal); display: flex; align-items: center; gap: 0.3rem; }
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.message { display: flex; gap: 0.75rem; max-width: 85%; }
+.message.user { flex-direction: row-reverse; align-self: flex-end; }
+
+.msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.message.assistant .msg-avatar { background: var(--teal-glow); border: 1px solid rgba(0,212,170,0.3); color: var(--teal); }
+.message.user .msg-avatar { background: rgba(74,158,255,0.15); border: 1px solid rgba(74,158,255,0.3); color: var(--blue); }
+
+.msg-bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.message.assistant .msg-bubble { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 2px; }
+.message.user .msg-bubble { background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.2); color: var(--white); border-bottom-right-radius: 2px; }
+
+.msg-time { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); margin-top: 0.3rem; }
+.message.user .msg-time { text-align: right; }
+
+.typing-indicator { display: flex; gap: 4px; padding: 4px 0; }
+.typing-dot { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: typing 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+.chat-input-area {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 0.75rem;
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  color: var(--white);
+  font-family: var(--body);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: none;
+  height: 42px;
+}
+
+.chat-input:focus { border-color: var(--teal); }
+
+.btn-send {
+  background: var(--teal);
+  color: var(--black);
+  border: none;
+  border-radius: 6px;
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-send:hover { background: var(--teal-dim); }
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* SUGGESTED QUESTIONS */
+.chat-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.suggestions-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  flex: 1;
+}
+
+.suggestions-title {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.suggestion-btn {
+  display: block;
+  width: 100%;
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.suggestion-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+
+/* REPORTS */
+.reports-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.report-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.report-item:hover { border-color: rgba(0,212,170,0.3); }
+
+.report-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--teal-glow);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.report-info { flex: 1; }
+.report-title { font-weight: 600; color: var(--white); font-size: 0.875rem; margin-bottom: 0.2rem; }
+.report-date { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); }
+
+.report-badge {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-new { background: rgba(0,212,170,0.1); color: var(--teal); border: 1px solid rgba(0,212,170,0.2); }
+.badge-read { background: var(--panel2); color: var(--muted); border: 1px solid var(--border); }
+
+/* SECTION DIVIDER */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.section-divider-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--teal);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.section-divider-line { flex: 1; height: 1px; background: var(--border); }
+
+/* NEXT STEPS */
+.next-steps { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.next-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.step-num {
+  width: 22px;
+  height: 22px;
+  background: var(--teal-glow);
+  border: 1px solid rgba(0,212,170,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.step-text { color: var(--text); line-height: 1.5; }
+.step-text strong { color: var(--white); }
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .risk-section { grid-template-columns: 1fr; }
+  .chat-layout { grid-template-columns: 1fr; height: auto; }
+  .chat-sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN PAGE ── -->
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">Vylint<span>Shield</span></div>
+    <div class="login-tagline">Customer Portal</div>
+
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com" value="david@vylintshield.com">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Access Code</label>
+      <input type="password" class="form-input" id="loginCode" placeholder="Enter your access code" value="demo123">
+    </div>
+
+    <button class="btn-login" onclick="doLogin()">Access My Portal →</button>
+
+    <div class="login-note">
+      Your access code was included in your welcome email.<br>
+      Need help? Contact <a href="mailto:david@vylintshield.com" style="color:var(--teal);">david@vylintshield.com</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── PORTAL ── -->
+<div class="portal" id="portal">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">Vylint<span>Shield</span></div>
+      <div class="sidebar-logo-sub">Security Portal</div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" onclick="showTab('dashboard', this)">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showTab('documents', this)">
+        <span class="nav-icon">⊡</span> My Documents
+      </div>
+      <div class="nav-item" onclick="showTab('assistant', this)">
+        <span class="nav-icon">◎</span> AI Assistant
+      </div>
+      <div class="nav-item" onclick="showTab('reports', this)">
+        <span class="nav-icon">⊞</span> Threat Reports
+      </div>
+
+      <div class="nav-section-label" style="margin-top:1rem;">Account</div>
+      <div class="nav-item" onclick="showTab('settings', this)">
+        <span class="nav-icon">⊙</span> Settings
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="userInitials">TD</div>
+        <div>
+          <div class="user-name" id="userName">Test Dental</div>
+          <div class="user-plan">Standard Plan</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">← Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- DASHBOARD TAB -->
+    <div class="tab-content active" id="tab-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Security Dashboard</div>
+          <div class="page-subtitle">Overview of your compliance status and security posture</div>
+        </div>
+        <div class="shield-status">
+          <div class="status-dot"></div>
+          Shield Active
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card teal">
+          <div class="stat-label">Risk Score</div>
+          <div class="stat-value">74</div>
+          <div class="stat-sub">High Risk — action needed</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Documents</div>
+          <div class="stat-value">6</div>
+          <div class="stat-sub">All policies generated</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Open Actions</div>
+          <div class="stat-value">8</div>
+          <div class="stat-sub">Items to implement</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Next Report</div>
+          <div class="stat-value">May 1</div>
+          <div class="stat-sub">Monthly threat briefing</div>
+        </div>
+      </div>
+
+      <div class="risk-section">
+        <div class="risk-card">
+          <div class="card-title">⚡ Risk Assessment</div>
+          <div class="risk-gauge">
+            <div class="gauge-circle">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle class="gauge-bg" cx="60" cy="60" r="50"/>
+                <circle class="gauge-fill" cx="60" cy="60" r="50"
+                  stroke="#e84057"
+                  stroke-dasharray="314"
+                  stroke-dashoffset="80"/>
+              </svg>
+              <div class="gauge-text">
+                <div class="gauge-score" style="color:#e84057;">74</div>
+                <div class="gauge-label">/ 100</div>
+              </div>
+            </div>
+            <div class="risk-details">
+              <div class="risk-level high">High Risk</div>
+              <div class="risk-desc">Your business has significant security gaps that require immediate attention to achieve compliance.</div>
+              <ul class="risk-items">
+                <li class="risk-item"><div class="risk-dot" style="background:var(--red)"></div><span style="font-size:0.8rem;color:var(--text);">No password policy</span></li>
+                <li class="risk-item"><div class="risk-dot" style="background:var(--red)"></div><span style="font-size:0.8rem;color:var(--text);">No MFA enabled</span></li>
+                <li class="risk-item"><div class="risk-dot" style="background:var(--amber)"></div><span style="font-size:0.8rem;color:var(--text);">No incident response plan</span></li>
+                <li class="risk-item"><div class="risk-dot" style="background:var(--amber)"></div><span style="font-size:0.8rem;color:var(--text);">No backup system</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="risk-card">
+          <div class="card-title">✓ Compliance Status</div>
+          <div class="compliance-list">
+            <div class="compliance-item">
+              <div class="compliance-check fail">✗</div>
+              <div class="compliance-text">Password Policy</div>
+              <div class="compliance-badge badge-hipaa">HIPAA</div>
+            </div>
+            <div class="compliance-item">
+              <div class="compliance-check fail">✗</div>
+              <div class="compliance-text">Multi-Factor Authentication</div>
+              <div class="compliance-badge badge-hipaa">HIPAA</div>
+            </div>
+            <div class="compliance-item">
+              <div class="compliance-check warn">!</div>
+              <div class="compliance-text">Incident Response Plan</div>
+              <div class="compliance-badge badge-gen">Required</div>
+            </div>
+            <div class="compliance-item">
+              <div class="compliance-check warn">!</div>
+              <div class="compliance-text">Employee Security Training</div>
+              <div class="compliance-badge badge-hipaa">HIPAA</div>
+            </div>
+            <div class="compliance-item">
+              <div class="compliance-check done">✓</div>
+              <div class="compliance-text">Risk Assessment Completed</div>
+              <div class="compliance-badge badge-gen">Done</div>
+            </div>
+            <div class="compliance-item">
+              <div class="compliance-check done">✓</div>
+              <div class="compliance-text">Policy Documents Generated</div>
+              <div class="compliance-badge badge-gen">Done</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider">
+        <div class="section-divider-label">// Recommended Next Steps</div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div class="next-steps">
+        <div class="next-step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Enable Multi-Factor Authentication</strong> — Turn on MFA for all email and practice software accounts. Free, takes 20 minutes. Blocks 99% of automated attacks.</div>
+        </div>
+        <div class="next-step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Implement Your Password Policy</strong> — Distribute the Password & Access Control Policy (in your documents) to all staff. Require compliance within 30 days.</div>
+        </div>
+        <div class="next-step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Set Up a Backup System</strong> — Your risk score drops significantly with a verified backup. Consider Carbonite ($6/month) or Veeam for automated daily backups.</div>
+        </div>
+        <div class="next-step">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>Conduct Staff Security Training</strong> — Use the Employee Security Awareness Guide in your documents to run a 1-hour training session with your team.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS TAB -->
+    <div class="tab-content" id="tab-documents">
+      <div class="page-header">
+        <div>
+          <div class="page-title">My Documents</div>
+          <div class="page-subtitle">Your complete cybersecurity compliance package — download and implement</div>
+        </div>
+      </div>
+
+      <div class="docs-grid">
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon">📊</div>
+            <div>
+              <div class="doc-name">Risk Assessment Report</div>
+              <div class="doc-meta">Generated Apr 19, 2026 · 11 pages · PDF</div>
+            </div>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-desc">Complete risk analysis with score breakdown, top vulnerabilities, and a 30/60/90 day action plan specific to your business.</div>
+            <div class="doc-actions">
+              <button class="btn-download" onclick="fakeDownload('Risk_Assessment_Report.pdf')">⬇ Download PDF</button>
+              <button class="btn-preview" onclick="showPreview('risk')">Preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon">🔐</div>
+            <div>
+              <div class="doc-name">Password & Access Control Policy</div>
+              <div class="doc-meta">Generated Apr 19, 2026 · 11 pages · PDF</div>
+            </div>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-desc">Complete password requirements, MFA mandates, account lifecycle procedures, and remote access rules for your practice.</div>
+            <div class="doc-actions">
+              <button class="btn-download" onclick="fakeDownload('Password_Policy.pdf')">⬇ Download PDF</button>
+              <button class="btn-preview">Preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon">🗄️</div>
+            <div>
+              <div class="doc-name">Data Handling & Privacy Policy</div>
+              <div class="doc-meta">Generated Apr 19, 2026 · 10 pages · PDF</div>
+            </div>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-desc">Data classification, collection rules, retention schedules, and third-party vendor requirements for patient data protection.</div>
+            <div class="doc-actions">
+              <button class="btn-download" onclick="fakeDownload('Data_Handling_Policy.pdf')">⬇ Download PDF</button>
+              <button class="btn-preview">Preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon">🚨</div>
+            <div>
+              <div class="doc-name">Incident Response Plan</div>
+              <div class="doc-meta">Generated Apr 19, 2026 · 17 pages · PDF</div>
+            </div>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-desc">Full 6-phase response procedures, HIPAA breach notification timelines, patient letter templates, and emergency contact directory.</div>
+            <div class="doc-actions">
+              <button class="btn-download" onclick="fakeDownload('Incident_Response_Plan.pdf')">⬇ Download PDF</button>
+              <button class="btn-preview">Preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon">👥</div>
+            <div>
+              <div class="doc-name">Employee Security Awareness Guide</div>
+              <div class="doc-meta">Generated Apr 19, 2026 · 10 pages · PDF</div>
+            </div>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-desc">5 training modules covering phishing, passwords, device security, social engineering, and incident reporting with quiz questions.</div>
+            <div class="doc-actions">
+              <button class="btn-download" onclick="fakeDownload('Employee_Security_Guide.pdf')">⬇ Download PDF</button>
+              <button class="btn-preview">Preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon">✅</div>
+            <div>
+              <div class="doc-name">HIPAA Compliance Checklist</div>
+              <div class="doc-meta">Generated Apr 19, 2026 · 10 pages · PDF</div>
+            </div>
+          </div>
+          <div class="doc-card-body">
+            <div class="doc-desc">39 audit items across Administrative, Physical, and Technical safeguards with CFR citations and current compliance status.</div>
+            <div class="doc-actions">
+              <button class="btn-download" onclick="fakeDownload('HIPAA_Compliance_Checklist.pdf')">⬇ Download PDF</button>
+              <button class="btn-preview">Preview</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider" style="margin-top:2rem;">
+        <div class="section-divider-label">// Document Updates</div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1.25rem;font-size:0.85rem;color:var(--muted);line-height:1.7;">
+        Your documents are automatically reviewed and updated when regulations change. Next scheduled review: <span style="color:var(--teal);">July 19, 2026</span>. You will receive an email notification when updated documents are available.
+      </div>
+    </div>
+
+    <!-- AI ASSISTANT TAB -->
+    <div class="tab-content" id="tab-assistant">
+      <div class="page-header">
+        <div>
+          <div class="page-title">AI Security Assistant</div>
+          <div class="page-subtitle">Ask anything about cybersecurity, compliance, or your specific business situation</div>
+        </div>
+      </div>
+
+      <div class="chat-layout">
+        <div class="chat-main">
+          <div class="chat-header">
+            <div class="chat-avatar">🛡️</div>
+            <div>
+              <div class="chat-name">VylintShield AI</div>
+              <div class="chat-status"><div class="status-dot"></div> Online — powered by Claude</div>
+            </div>
+          </div>
+
+          <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+              <div class="msg-avatar">🛡️</div>
+              <div>
+                <div class="msg-bubble">Hello! I'm your VylintShield security assistant. I'm here to help with any cybersecurity or compliance questions specific to your dental practice.<br><br>I have full context on your business profile, risk assessment, and compliance documents. You can ask me anything — from explaining a specific policy to guiding you through implementing a security control.<br><br>What can I help you with today?</div>
+                <div class="msg-time">Today, 9:00 AM</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" placeholder="Ask about cybersecurity, HIPAA compliance, your policies..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+            <button class="btn-send" id="sendBtn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+
+        <div class="chat-sidebar">
+          <div class="suggestions-card">
+            <div class="suggestions-title">// Suggested Questions</div>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">How do I implement MFA for my Dentrix software?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">What happens if I have a patient data breach?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">How should I train my staff on phishing?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">What are my HIPAA reporting requirements?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">How do I set up a secure backup system?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">Can you explain my risk score?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">What should I do first to lower my risk?</button>
+            <button class="suggestion-btn" onclick="askSuggestion(this)">How do I create strong passwords for my team?</button>
+          </div>
+
+          <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1rem;">
+            <div class="suggestions-title" style="margin-bottom:0.5rem;">// Your Context</div>
+            <div style="font-size:0.78rem;color:var(--muted);line-height:1.6;">
+              Business type: <span style="color:var(--text);">Dental Practice</span><br>
+              Framework: <span style="color:var(--text);">HIPAA</span><br>
+              Risk score: <span style="color:var(--red);">74/100 High</span><br>
+              State: <span style="color:var(--text);">Wyoming</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THREAT REPORTS TAB -->
+    <div class="tab-content" id="tab-reports">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Threat Intelligence Reports</div>
+          <div class="page-subtitle">Monthly cybersecurity briefings specific to your industry</div>
+        </div>
+      </div>
+
+      <div class="reports-list">
+        <div class="report-item">
+          <div class="report-icon">📡</div>
+          <div class="report-info">
+            <div class="report-title">April 2026 Threat Intelligence Briefing</div>
+            <div class="report-date">Delivered April 1, 2026 · Dental / Medical sector · Threat level: HIGH</div>
+          </div>
+          <div class="report-badge badge-new">New</div>
+          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="fakeDownload('April_2026_Threat_Report.pdf')">⬇ PDF</button>
+        </div>
+
+        <div class="report-item">
+          <div class="report-icon">📡</div>
+          <div class="report-info">
+            <div class="report-title">March 2026 Threat Intelligence Briefing</div>
+            <div class="report-date">Delivered March 1, 2026 · Dental / Medical sector · Threat level: MEDIUM</div>
+          </div>
+          <div class="report-badge badge-read">Read</div>
+          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="fakeDownload('March_2026_Threat_Report.pdf')">⬇ PDF</button>
+        </div>
+
+        <div class="report-item">
+          <div class="report-icon">📡</div>
+          <div class="report-info">
+            <div class="report-title">February 2026 Threat Intelligence Briefing</div>
+            <div class="report-date">Delivered February 1, 2026 · Dental / Medical sector · Threat level: HIGH</div>
+          </div>
+          <div class="report-badge badge-read">Read</div>
+          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="fakeDownload('February_2026_Threat_Report.pdf')">⬇ PDF</button>
+        </div>
+      </div>
+
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin-top:1.5rem;font-size:0.85rem;color:var(--muted);line-height:1.7;">
+        Reports are generated on the <span style="color:var(--teal);">1st of every month</span> and delivered to your email automatically. Each report covers the current threat landscape, industry-specific risks for dental and medical practices, and 3 actionable recommendations tailored to your business size and profile.
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-content" id="tab-settings">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Account Settings</div>
+          <div class="page-subtitle">Manage your VylintShield account and subscription</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1.5rem;">
+          <div class="card-title" style="margin-bottom:1rem;">Business Profile</div>
+          <div style="display:flex;flex-direction:column;gap:0.75rem;font-size:0.85rem;">
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">Business Name</span>
+              <span style="color:var(--white);">Test Dental Office</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">Business Type</span>
+              <span style="color:var(--white);">Dental / Medical</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">State</span>
+              <span style="color:var(--white);">Wyoming</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">Framework</span>
+              <span style="color:var(--white);">HIPAA</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Email</span>
+              <span style="color:var(--white);">david@vylintshield.com</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1.5rem;">
+          <div class="card-title" style="margin-bottom:1rem;">Subscription</div>
+          <div style="display:flex;flex-direction:column;gap:0.75rem;font-size:0.85rem;">
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">Current Plan</span>
+              <span style="color:var(--teal);font-weight:600;">Standard — $149/mo</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">Status</span>
+              <span style="color:var(--green);">Active</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+              <span style="color:var(--muted);">Next Billing</span>
+              <span style="color:var(--white);">May 19, 2026</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Member Since</span>
+              <span style="color:var(--white);">April 19, 2026</span>
+            </div>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+            <button class="btn-download" style="flex:1;font-size:0.8rem;padding:0.5rem;">Upgrade to Pro</button>
+            <button class="btn-preview" style="font-size:0.8rem;padding:0.5rem 0.75rem;">Manage Billing</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin-top:1.5rem;">
+        <div class="card-title" style="margin-bottom:1rem;">Need Help?</div>
+        <div style="font-size:0.85rem;color:var(--muted);line-height:1.7;">
+          For account support, billing questions, or technical assistance contact us at
+          <a href="mailto:david@vylintshield.com" style="color:var(--teal);">david@vylintshield.com</a>.
+          You can also use the AI Assistant tab to ask cybersecurity questions 24/7.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── DEMO DATA ──
+const DEMO_USER = {
+  email: 'david@vylintshield.com',
+  code: 'demo123',
+  name: 'Test Dental',
+  initials: 'TD',
+  plan: 'Standard'
+};
+
+// ── LOGIN ──
+function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const code = document.getElementById('loginCode').value;
+
+  if (!email || !code) {
+    alert('Please enter your email and access code.');
+    return;
+  }
+
+  // Show portal
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('portal').classList.add('active');
+
+  // Set user info
+  document.getElementById('userName').textContent = DEMO_USER.name;
+  document.getElementById('userInitials').textContent = DEMO_USER.initials;
+}
+
+function doLogout() {
+  document.getElementById('portal').classList.remove('active');
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+// ── TABS ──
+function showTab(tabName, navEl) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+}
+
+// ── FAKE DOWNLOAD ──
+function fakeDownload(filename) {
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Preparing...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '✓ Downloaded';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+  }, 1200);
+}
+
+// ── AI CHAT ──
+const ANTHROPIC_SYSTEM = `You are VylintShield's cybersecurity security assistant helping a small dental practice in Wyoming.
+
+Business context:
+- Business type: Dental / Medical Practice
+- Framework: HIPAA
+- Risk score: 74/100 (High Risk)
+- State: Wyoming
+- Employees: 1-5
+- No password policy, no MFA, no incident response plan, no backup system
+- Software: Dentrix
+- Email: Google Workspace
+
+Be helpful, practical, and specific to their dental practice context. Keep responses concise and actionable. Reference their specific situation when relevant. Always prioritize HIPAA compliance guidance.`;
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  addMessage('user', msg);
+
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+
+  // Show typing indicator
+  const typingId = addTyping();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: ANTHROPIC_SYSTEM,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+
+    removeTyping(typingId);
+
+    if (!response.ok) throw new Error('API error');
+
+    const data = await response.json();
+    const reply = data.content[0].text;
+    addMessage('assistant', reply);
+  } catch(e) {
+    removeTyping(typingId);
+    addMessage('assistant', 'I apologize — I\'m having trouble connecting right now. Please try again in a moment or contact david@vylintshield.com for immediate assistance.');
+  }
+
+  sendBtn.disabled = false;
+}
+
+function addMessage(role, text) {
+  const container = document.getElementById('chatMessages');
+  const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const avatar = role === 'assistant' ? '🛡️' : '👤';
+
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div>
+      <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+      <div class="msg-time">Today, ${time}</div>
+    </div>`;
+
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addTyping() {
+  const container = document.getElementById('chatMessages');
+  const id = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'message assistant';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar">🛡️</div>
+    <div>
+      <div class="msg-bubble">
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function askSuggestion(btn) {
+  document.getElementById('chatInput').value = btn.textContent;
+  showTab('assistant', document.querySelector('.nav-item:nth-child(3)'));
+  sendMessage();
+}
+
+function showPreview(type) {
+  alert('In the live version this opens the PDF preview. Your customer would see their actual document here.');
+}
+</script>
+</body>
+</html>
