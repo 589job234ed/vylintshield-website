@@ -1304,7 +1304,7 @@ body::before {
             <div class="report-date">Delivered April 1, 2026 · Dental / Medical sector · Threat level: HIGH</div>
           </div>
           <div class="report-badge badge-new">New</div>
-          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="fakeDownload('April_2026_Threat_Report.pdf')">⬇ PDF</button>
+          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="showThreatReportMessage()">⬇ PDF</button>
         </div>
 
         <div class="report-item">
@@ -1314,7 +1314,7 @@ body::before {
             <div class="report-date">Delivered March 1, 2026 · Dental / Medical sector · Threat level: MEDIUM</div>
           </div>
           <div class="report-badge badge-read">Read</div>
-          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="fakeDownload('March_2026_Threat_Report.pdf')">⬇ PDF</button>
+          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="showThreatReportMessage()">⬇ PDF</button>
         </div>
 
         <div class="report-item">
@@ -1324,7 +1324,7 @@ body::before {
             <div class="report-date">Delivered February 1, 2026 · Dental / Medical sector · Threat level: HIGH</div>
           </div>
           <div class="report-badge badge-read">Read</div>
-          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="fakeDownload('February_2026_Threat_Report.pdf')">⬇ PDF</button>
+          <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" onclick="showThreatReportMessage()">⬇ PDF</button>
         </div>
       </div>
 
@@ -1617,6 +1617,9 @@ async function showPortal(user) {
 
   // Fetch and wire up real document downloads
   await fetchAndRenderDocuments(email);
+
+  // Fetch and render real threat reports
+  await fetchAndRenderReports(email);
 }
 
 // ── SHOW LOGIN ──
@@ -1874,6 +1877,71 @@ function askSuggestion(btn) {
   document.getElementById('chatInput').value = btn.textContent;
   showTab('assistant', document.querySelector('.nav-item:nth-child(3)'));
   sendMessage();
+}
+
+function showThreatReportMessage() {
+  alert('Your monthly threat reports are delivered to your inbox on the 1st of each month. Search your email for "VylintShield Security Briefing" to find past reports.\n\nNeed a copy resent? Email david@vylintshield.com');
+}
+
+// ── FETCH & RENDER REAL THREAT REPORTS ──
+const REPORTS_API = 'https://vylintshield.ngrok.app/reports';
+const DOWNLOAD_REPORT_API = 'https://vylintshield.ngrok.app/download-report';
+
+async function fetchAndRenderReports(email) {
+  try {
+    const res = await fetch(`${REPORTS_API}?email=${encodeURIComponent(email)}`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.reports || data.reports.length === 0) return;
+
+    const reportsList = document.querySelector('.reports-list');
+    if (!reportsList) return;
+
+    // Clear existing hardcoded reports
+    reportsList.innerHTML = '';
+
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    data.reports.forEach((report, index) => {
+      const monthName = monthNames[(report.month || 1) - 1];
+      const year = report.year || new Date().getFullYear();
+      const isNew = index === 0;
+
+      const div = document.createElement('div');
+      div.className = 'report-item';
+      div.innerHTML = `
+        <div class="report-icon">📡</div>
+        <div class="report-info">
+          <div class="report-title">${monthName} ${year} Threat Intelligence Briefing</div>
+          <div class="report-date">Delivered ${monthName} 1, ${year} · ${isNew ? 'Latest report' : 'Archive'}</div>
+        </div>
+        <div class="report-badge ${isNew ? 'badge-new' : 'badge-read'}">${isNew ? 'New' : 'Read'}</div>
+        <button class="btn-download" style="width:auto;padding:0.4rem 0.9rem;font-size:0.75rem;" 
+          onclick="downloadReport('${email}', '${report.filename}')">⬇ PDF</button>`;
+      reportsList.appendChild(div);
+    });
+
+    console.log(`Loaded ${data.reports.length} threat reports for ${email}`);
+  } catch(e) {
+    console.warn('Could not fetch reports:', e);
+  }
+}
+
+function downloadReport(email, filename) {
+  const url = `${DOWNLOAD_REPORT_API}?email=${encodeURIComponent(email)}&file=${encodeURIComponent(filename)}`;
+  fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+    .then(r => r.blob())
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    })
+    .catch(() => window.open(url, '_blank'));
 }
 
 function showPreview(btn, filename) {
