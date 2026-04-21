@@ -1485,17 +1485,135 @@ sbClient.auth.onAuthStateChange((event, session) => {
   }
 });
 
+// ── FETCH CUSTOMER DATA FROM GOOGLE SHEETS VIA N8N ──
+const PORTAL_API = 'https://levitator-grit-same.ngrok-free.dev/webhook/portal-customer';
+
+async function fetchCustomerData(email) {
+  try {
+    const res = await fetch(`${PORTAL_API}?email=${encodeURIComponent(email)}`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // n8n returns array — get first match
+    if (Array.isArray(data) && data.length > 0) return data[0];
+    if (data && data.Name) return data;
+    return null;
+  } catch(e) {
+    console.warn('Could not fetch customer data:', e);
+    return null;
+  }
+}
+
+// ── POPULATE PORTAL WITH REAL CUSTOMER DATA ──
+function populatePortal(customer) {
+  if (!customer) return;
+
+  const name = customer.Name || customer.Business || 'Customer';
+  const business = customer.Business || 'Your Business';
+  const plan = customer.Plan || 'Standard';
+  const framework = customer.Frameworks || customer.Framework || 'HIPAA';
+  const industry = customer.Industry || 'Small Business';
+  const email = customer.Email || '';
+  const startDate = '';
+  const employees = customer.Employees || '';
+  const state = '';
+
+  // Format initials from business name
+  const initials = business.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+
+  // Plan price mapping
+  const planPrices = { 'Basic': '$49/mo', 'Standard': '$149/mo', 'Pro': '$299/mo' };
+  const planPrice = planPrices[plan] || '$149/mo';
+
+  // Next billing date (1 month from start)
+  let nextBilling = '';
+  if (startDate) {
+    const d = new Date(startDate);
+    d.setMonth(d.getMonth() + 1);
+    nextBilling = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  // ── Sidebar ──
+  document.getElementById('userName').textContent = business;
+  document.getElementById('userInitials').textContent = initials;
+  document.querySelector('.user-plan').textContent = `${plan} Plan`;
+
+  // ── Dashboard header ──
+  const pageTitle = document.querySelector('#tab-dashboard .page-title');
+  if (pageTitle) pageTitle.textContent = `Welcome back, ${name}`;
+  const pageSub = document.querySelector('#tab-dashboard .page-subtitle');
+  if (pageSub) pageSub.textContent = `${business} · ${framework} · ${industry}`;
+
+  // ── Stats cards — update business name reference ──
+  const statCards = document.querySelectorAll('.stat-card');
+  if (statCards.length > 0) {
+    // Update any hardcoded "Test Dental" references
+    document.querySelectorAll('.stat-card .stat-label').forEach(el => {
+      if (el.textContent.includes('Test Dental')) el.textContent = el.textContent.replace('Test Dental', business);
+    });
+  }
+
+  // ── Settings tab ──
+  const settingsFields = document.querySelectorAll('#tab-settings .setting-value, #tab-settings span[style*="color:var(--white)"]');
+  // Business profile fields
+  const profileRows = document.querySelectorAll('#tab-settings .card-body .profile-row, #tab-settings div[style*="justify-content:space-between"]');
+  profileRows.forEach(row => {
+    const label = row.querySelector('span:first-child');
+    const value = row.querySelector('span:last-child');
+    if (!label || !value) return;
+    const labelText = label.textContent.trim();
+    if (labelText === 'Business Name') value.textContent = business;
+    if (labelText === 'Business Type') value.textContent = industry;
+    if (labelText === 'State') value.textContent = state || value.textContent;
+    if (labelText === 'Framework') value.textContent = framework;
+    if (labelText === 'Email') value.textContent = email;
+    if (labelText === 'Current Plan') value.textContent = `${plan} — ${planPrice}`;
+    if (labelText === 'Next Billing') value.textContent = nextBilling || value.textContent;
+    if (labelText === 'Member Since') value.textContent = startDate ? new Date(startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : value.textContent;
+  });
+
+  // ── AI Assistant context — update system prompt with real data ──
+  window.CUSTOMER_CONTEXT = `You are VylintShield's cybersecurity assistant helping ${business}.
+
+Business context:
+- Business name: ${business}
+- Business type: ${industry}
+- Framework: ${framework}
+- State: ${state}
+- Employees: ${employees}
+- Plan: ${plan}
+
+Be helpful, practical, and specific to their business context. Keep responses concise and actionable. Reference their specific situation when relevant. Always prioritize ${framework} compliance guidance.`;
+
+  // ── Threat reports — update industry references ──
+  document.querySelectorAll('.report-date').forEach(el => {
+    el.textContent = el.textContent.replace('Dental / Medical sector', industry);
+  });
+
+  console.log('Portal populated for:', business, '|', framework, '|', plan);
+}
+
 // ── SHOW PORTAL ──
-function showPortal(user) {
+async function showPortal(user) {
   const email = user.email || '';
+
+  // Show portal immediately with email-derived name while data loads
   const namePart = email.split('@')[0];
   const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._-]/g, ' ');
-  const initials = displayName.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
-
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('portal').classList.add('active');
   document.getElementById('userName').textContent = displayName;
-  document.getElementById('userInitials').textContent = initials;
+  document.getElementById('userInitials').textContent = displayName.substring(0,2).toUpperCase();
+
+  // Fetch and populate real customer data
+  const customer = await fetchCustomerData(email);
+  if (customer) {
+    populatePortal(customer);
+  } else {
+    console.warn('No customer record found for:', email);
+    // Portal still works — just shows email-derived name
+  }
 }
 
 // ── SHOW LOGIN ──
@@ -1536,19 +1654,7 @@ function fakeDownload(filename) {
 }
 
 // ── AI CHAT ──
-const ANTHROPIC_SYSTEM = `You are VylintShield's cybersecurity security assistant helping a small dental practice in Wyoming.
-
-Business context:
-- Business type: Dental / Medical Practice
-- Framework: HIPAA
-- Risk score: 74/100 (High Risk)
-- State: Wyoming
-- Employees: 1-5
-- No password policy, no MFA, no incident response plan, no backup system
-- Software: Dentrix
-- Email: Google Workspace
-
-Be helpful, practical, and specific to their dental practice context. Keep responses concise and actionable. Reference their specific situation when relevant. Always prioritize HIPAA compliance guidance.`;
+const ANTHROPIC_SYSTEM_DEFAULT = `You are VylintShield's cybersecurity assistant helping a small business. Be helpful, practical, and specific. Keep responses concise and actionable. Always prioritize compliance guidance relevant to their framework.`;
 
 async function sendMessage() {
   const input = document.getElementById('chatInput');
@@ -1560,32 +1666,28 @@ async function sendMessage() {
 
   const sendBtn = document.getElementById('sendBtn');
   sendBtn.disabled = true;
-
-  // Show typing indicator
   const typingId = addTyping();
 
   try {
+    const systemPrompt = window.CUSTOMER_CONTEXT || ANTHROPIC_SYSTEM_DEFAULT;
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: ANTHROPIC_SYSTEM,
+        system: systemPrompt,
         messages: [{ role: 'user', content: msg }]
       })
     });
 
     removeTyping(typingId);
-
     if (!response.ok) throw new Error('API error');
-
     const data = await response.json();
-    const reply = data.content[0].text;
-    addMessage('assistant', reply);
+    addMessage('assistant', data.content[0].text);
   } catch(e) {
     removeTyping(typingId);
-    addMessage('assistant', 'I apologize — I\'m having trouble connecting right now. Please try again in a moment or contact david@vylintshield.com for immediate assistance.');
+    addMessage('assistant', 'I\'m having trouble connecting right now. Please try again or contact david@vylintshield.com for immediate assistance.');
   }
 
   sendBtn.disabled = false;
