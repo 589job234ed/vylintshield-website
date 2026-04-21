@@ -1612,8 +1612,10 @@ async function showPortal(user) {
     populatePortal(customer);
   } else {
     console.warn('No customer record found for:', email);
-    // Portal still works — just shows email-derived name
   }
+
+  // Fetch and wire up real document downloads
+  await fetchAndRenderDocuments(email);
 }
 
 // ── SHOW LOGIN ──
@@ -1636,7 +1638,116 @@ function showTab(tabName, navEl) {
   if (navEl) navEl.classList.add('active');
 }
 
-// ── FAKE DOWNLOAD ──
+// ── FETCH & RENDER REAL DOCUMENTS ──
+const FILES_API = 'https://vylintshield.ngrok.app/files';
+const DOWNLOAD_API = 'https://vylintshield.ngrok.app/download';
+
+async function fetchAndRenderDocuments(email) {
+  try {
+    const res = await fetch(`${FILES_API}?email=${encodeURIComponent(email)}`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.files || data.files.length === 0) return;
+
+    // Update generated date across all doc cards
+    const genDate = data.generatedAt ? new Date(data.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+    // Map filenames to doc card download buttons by matching name keywords
+    const docCards = document.querySelectorAll('.doc-card');
+    docCards.forEach(card => {
+      const docName = card.querySelector('.doc-name')?.textContent?.toLowerCase() || '';
+      const metaEl = card.querySelector('.doc-meta');
+      const downloadBtn = card.querySelector('.btn-download');
+      if (!downloadBtn) return;
+
+      // Find matching file
+      const match = data.files.find(f => {
+        const fn = f.filename.toLowerCase();
+        if (docName.includes('risk')) return fn.includes('risk');
+        if (docName.includes('password')) return fn.includes('password');
+        if (docName.includes('data handling') || docName.includes('privacy')) return fn.includes('data');
+        if (docName.includes('incident')) return fn.includes('incident');
+        if (docName.includes('employee') || docName.includes('awareness')) return fn.includes('employee');
+        if (docName.includes('checklist') || docName.includes('hipaa') || docName.includes('ferpa') || docName.includes('compliance')) return fn.includes('checklist') || fn.includes('ferpa') || fn.includes('compliance');
+        return false;
+      });
+
+      if (match) {
+        // Update meta date
+        if (metaEl && genDate) {
+          metaEl.textContent = metaEl.textContent.replace(/Generated.*·/, `Generated ${genDate} ·`);
+        }
+        // Wire up real download
+        downloadBtn.onclick = () => downloadDocument(email, match.filename, match.name);
+      }
+    });
+
+    // Add any extra documents (FERPA, ABA, FTC etc) not in the default 6 cards
+    const extraFiles = data.files.filter(f => {
+      const fn = f.filename.toLowerCase();
+      return fn.includes('ferpa') || fn.includes('aba') || fn.includes('ftc') || fn.includes('pci') || fn.includes('wisp');
+    });
+
+    if (extraFiles.length > 0) {
+      const grid = document.querySelector('.docs-grid');
+      if (grid) {
+        extraFiles.forEach(f => {
+          // Check if already shown
+          const already = Array.from(grid.querySelectorAll('.doc-name')).some(el => el.textContent.toLowerCase().includes(f.name.toLowerCase().substring(0,8)));
+          if (already) return;
+          const card = document.createElement('div');
+          card.className = 'doc-card';
+          card.innerHTML = `
+            <div class="doc-card-header">
+              <div class="doc-icon">📋</div>
+              <div>
+                <div class="doc-name">${f.name}</div>
+                <div class="doc-meta">Generated ${genDate} · PDF</div>
+              </div>
+            </div>
+            <div class="doc-card-body">
+              <div class="doc-desc">Framework-specific compliance document generated for your business.</div>
+              <div class="doc-actions">
+                <button class="btn-download" onclick="downloadDocument('${email}', '${f.filename}', '${f.name}')">⬇ Download PDF</button>
+              </div>
+            </div>`;
+          grid.appendChild(card);
+        });
+      }
+    }
+
+    console.log(`Loaded ${data.files.length} documents for ${email}`);
+  } catch(e) {
+    console.warn('Could not fetch documents:', e);
+  }
+}
+
+function downloadDocument(email, filename, docName) {
+  const url = `${DOWNLOAD_API}?email=${encodeURIComponent(email)}&file=${encodeURIComponent(filename)}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.target = '_blank';
+  // Add ngrok header bypass via fetch + blob for clean download
+  fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+    .then(r => r.blob())
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    })
+    .catch(() => {
+      // Fallback — direct link
+      window.open(url, '_blank');
+    });
+}
+
+// ── FAKE DOWNLOAD (fallback for any unwired buttons) ──
 function fakeDownload(filename) {
   const btn = event.target;
   const orig = btn.textContent;
