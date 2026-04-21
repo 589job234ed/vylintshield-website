@@ -1601,6 +1601,7 @@ async function showPortal(user) {
   // Show portal immediately with email-derived name while data loads
   const namePart = email.split('@')[0];
   const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._-]/g, ' ');
+  window.currentUserEmail = email;
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('portal').classList.add('active');
   document.getElementById('userName').textContent = displayName;
@@ -1681,6 +1682,11 @@ async function fetchAndRenderDocuments(email) {
         }
         // Wire up real download
         downloadBtn.onclick = () => downloadDocument(email, match.filename, match.name);
+        // Wire up preview button
+        const previewBtn = card.querySelector('.btn-preview');
+        if (previewBtn) {
+          previewBtn.onclick = () => showPreview(previewBtn, match.filename);
+        }
       }
     });
 
@@ -1870,8 +1876,20 @@ function askSuggestion(btn) {
   sendMessage();
 }
 
-function showPreview(type) {
-  alert('In the live version this opens the PDF preview. Your customer would see their actual document here.');
+function showPreview(btn, filename) {
+  if (!window.currentUserEmail || !filename) {
+    alert('Preview unavailable. Please download the document instead.');
+    return;
+  }
+  const url = `https://vylintshield.ngrok.app/download?email=${encodeURIComponent(window.currentUserEmail)}&file=${encodeURIComponent(filename)}`;
+  fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+    .then(r => r.blob())
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    })
+    .catch(() => window.open(url, '_blank'));
 }
 
 // ── INIT — check for existing session on load ──
